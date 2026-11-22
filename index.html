@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOGIC | Semi-vanilla PvP on Elver</title>
+<meta name="description" content="LOGIC is a semi-vanilla PvP Unturned server on the Elver map. Free kits, a personal vault, day votes and a leaderboard.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #11171a;
+    --ink-2: #172025;
+    --bone: #e9e5d8;
+    --mute: #98a29e;
+    --line: rgba(233, 229, 216, 0.24);
+    --moss: #86ad5c;
+    --cyan: #00e5ff;
+    --dusk-top: #2b2542;
+    --dusk-mid: #6a4f78;
+    --dusk-low: #c98f6e;
+    --u: 76px;          /* size of one inventory slot */
+    --gap: 4px;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--bone);
+    font-family: "Archivo", system-ui, sans-serif;
+    font-stretch: 100%;
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+  .wrap { width: min(1080px, 100% - 32px); margin-inline: auto; }
+  h1, h2, h3 { font-stretch: 125%; font-weight: 800; line-height: 1.05; margin: 0; letter-spacing: -0.01em; }
+  p { margin: 0; }
+  code, .cmd { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 0.92em; }
+
+  /* ---------- Header ---------- */
+  .top { position: absolute; inset: 0 0 auto 0; z-index: 3; }
+  .top .wrap { display: flex; align-items: center; justify-content: space-between; padding-block: 20px; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font-stretch: 125%; font-weight: 800; font-size: 20px; letter-spacing: 0.04em; }
+  .brand img, .brand .mark { width: 34px; height: 34px; border-radius: 50%; }
+  .brand .mark { background: radial-gradient(circle at 35% 35%, #7cf3ff, var(--cyan) 55%, #0097ad); }
+  nav { display: flex; gap: 26px; font-size: 15px; font-weight: 500; }
+  nav a { text-decoration: none; color: rgba(233, 229, 216, 0.86); }
+  nav a:hover { color: #fff; text-decoration: underline; text-underline-offset: 6px; }
+
+  /* ---------- Hero ---------- */
+  .hero { position: relative; min-height: 640px; display: flex; align-items: flex-end; overflow: hidden; background: linear-gradient(180deg, var(--dusk-top) 0%, var(--dusk-mid) 55%, var(--dusk-low) 100%); }
+  .hero svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, var(--ink) 0%, rgba(17, 23, 26, 0) 38%); pointer-events: none; }
+  .hero .wrap { position: relative; z-index: 2; padding: 160px 0 56px; }
+  .hero h1 { font-size: clamp(40px, 7vw, 84px); max-width: 11ch; text-wrap: balance; }
+  .hero .lede { margin-top: 20px; max-width: 46ch; font-size: 19px; color: rgba(233, 229, 216, 0.92); }
+  .actions { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn { appearance: none; border: 1px solid var(--line); background: rgba(17, 23, 26, 0.55); color: var(--bone); font: inherit; font-weight: 700; font-stretch: 112%; padding: 14px 22px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; backdrop-filter: blur(4px); transition: background 0.15s, border-color 0.15s; }
+  .btn:hover { border-color: var(--bone); background: rgba(17, 23, 26, 0.8); }
+  .btn.primary { background: var(--cyan); color: #04181c; border-color: var(--cyan); }
+  .btn.primary:hover { background: #5ff0ff; border-color: #5ff0ff; }
+  .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+  .status { margin-top: 22px; display: inline-flex; align-items: center; gap: 10px; font-size: 15px; color: rgba(233, 229, 216, 0.9); min-height: 22px; }
+  .status .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--moss); box-shadow: 0 0 0 4px rgba(134, 173, 92, 0.25); }
+  .status .dot.off { background: #b5594d; box-shadow: 0 0 0 4px rgba(181, 89, 77, 0.25); }
+
+  /* ---------- Sections ---------- */
+  section.block { padding: 96px 0 0; }
+  section.block h2 { font-size: clamp(28px, 4vw, 42px); }
+  section.block .sub { margin-top: 12px; color: var(--mute); max-width: 52ch; }
+
+  /* ---------- Inventory (features) ---------- */
+  .inv-layout { margin-top: 40px; display: grid; grid-template-columns: auto 1fr; gap: 40px; align-items: start; }
+  .inv {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(6, var(--u));
+    grid-auto-rows: var(--u);
+    grid-auto-flow: dense;
+    gap: var(--gap);
+    padding: var(--gap);
+    background-color: var(--ink-2);
+    /* the empty slots are drawn by the background, so unused cells still look like inventory */
+    background-image:
+      linear-gradient(var(--ink-2) 0 0);
+  }
+  .inv::before {
+    content: "";
+    position: absolute;
+    inset: var(--gap);
+    background-image:
+      linear-gradient(to right, transparent calc(100% - 1px), var(--line) 0),
+      linear-gradient(to bottom, transparent calc(100% - 1px), var(--line) 0);
+    background-size: calc(var(--u) + var(--gap)) calc(var(--u) + var(--gap));
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .item {
+    position: relative;
+    z-index: 1;
+    appearance: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--moss);
+    font: inherit;
+    background: rgba(233, 229, 216, 0.06);
+    border: 1px solid var(--line);
+    display: grid;
+    place-items: center;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .item:hover { background: rgba(233, 229, 216, 0.12); }
+  .item[aria-pressed="true"] { border-color: var(--cyan); background: rgba(0, 229, 255, 0.1); }
+  .item svg { width: 58%; height: 58%; max-width: 76px; max-height: 76px; fill: currentColor; }
+  .item.w2 { grid-column: span 2; }
+  .item.h2 { grid-row: span 2; }
+  .item .q { position: absolute; left: 5px; bottom: 3px; font-size: 11px; font-weight: 700; font-stretch: 90%; color: var(--moss); }
+  .item::after { content: ""; position: absolute; right: 3px; bottom: 3px; border-style: solid; border-width: 0 0 12px 12px; border-color: transparent transparent var(--moss) transparent; }
+  .detail { padding-top: 6px; max-width: 44ch; }
+  .detail h3 { font-size: 28px; }
+  .detail p { margin-top: 12px; color: rgba(233, 229, 216, 0.88); }
+  .detail .cmd { display: inline-block; margin-top: 18px; padding: 8px 12px; background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.4); color: #bff8ff; }
+  .hint { margin-top: 18px; font-size: 14px; color: var(--mute); }
+
+  /* ---------- Join steps ---------- */
+  .steps { margin: 36px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1px solid var(--line); }
+  .steps li { padding: 22px 28px 0 0; counter-increment: step; }
+  .steps li::before { content: counter(step); display: block; font-stretch: 125%; font-weight: 800; font-size: 34px; color: var(--cyan); line-height: 1; margin-bottom: 10px; }
+  .steps { counter-reset: step; }
+  .steps b { display: block; font-stretch: 112%; font-weight: 700; margin-bottom: 4px; }
+  .steps span { color: var(--mute); font-size: 16px; }
+
+  /* ---------- VIP ---------- */
+  .vip { margin-top: 36px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 0; border: 1px solid var(--line); }
+  .vip .left { padding: 32px; background: linear-gradient(135deg, rgba(0, 229, 255, 0.08), transparent 60%); }
+  .vip .left h3 { font-size: 30px; }
+  .vip .left p { margin-top: 12px; color: rgba(233, 229, 216, 0.88); max-width: 40ch; }
+  .vip .left .btn { margin-top: 26px; }
+  .vip ul { margin: 0; padding: 32px; list-style: none; border-left: 1px solid var(--line); display: grid; gap: 14px; align-content: center; }
+  .vip li { display: flex; gap: 12px; align-items: baseline; }
+  .vip li::before { content: ""; flex: none; width: 10px; height: 10px; background: var(--moss); transform: translateY(1px); clip-path: polygon(0 100%, 100% 100%, 100% 0); }
+  .fine { margin-top: 14px; font-size: 14px; color: var(--mute); max-width: 70ch; }
+
+  /* ---------- Rules ---------- */
+  .rules { margin: 32px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 56px; }
+  .rules li { padding: 16px 0; border-top: 1px solid var(--line); }
+  .rules b { font-stretch: 112%; font-weight: 700; }
+  .rules span { display: block; color: var(--mute); font-size: 16px; }
+
+  /* ---------- Footer ---------- */
+  footer { margin-top: 110px; border-top: 1px solid var(--line); padding: 30px 0 46px; color: var(--mute); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 40px; justify-content: space-between; }
+  footer a { color: var(--bone); }
+
+  /* ---------- Small screens ---------- */
+  @media (max-width: 900px) {
+    :root { --u: 64px; }
+    .inv-layout { grid-template-columns: 1fr; gap: 28px; }
+    .inv { justify-self: start; }
+    .vip { grid-template-columns: 1fr; }
+    .vip ul { border-left: 0; border-top: 1px solid var(--line); }
+    .steps { grid-template-columns: 1fr; }
+    .steps li { padding: 20px 0 0; }
+    .rules { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    :root { --u: 15.2vw; --gap: 3px; }
+    nav { gap: 16px; font-size: 14px; }
+    .hero { min-height: 600px; }
+    .hero .wrap { padding-top: 130px; }
+    .item .q { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn, .item { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" id="top">
+      <img id="logo" src="https://i.ibb.co/wh826t8F/Screenshot-33sdasda-removebg-preview.png" alt="" width="34" height="34">
+      LOGIC
+    </a>
+    <nav aria-label="Main">
+      <a href="#features">Features</a>
+      <a href="#join">Join</a>
+      <a href="#vip">VIP</a>
+      <a href="#rules">Rules</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero" aria-label="Welcome">
+    <svg id="scene" viewBox="0 0 1600 640" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
+    <div class="wrap">
+      <h1>Semi-vanilla PvP on Elver.</h1>
+      <p class="lede">Claim a free kit, stash your gear in a personal vault, and fight for the top of the leaderboard. Join the Discord first, then drop in.</p>
+      <div class="actions">
+        <a class="btn primary" id="discordBtn" href="#">Join the Discord</a>
+        <button class="btn" id="ipBtn" type="button">Copy server IP</button>
+      </div>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="block" id="features">
+    <div class="wrap">
+      <h2>Everything you can do</h2>
+      <p class="sub">Pick an item to see what it does and the command that opens it.</p>
+
+      <div class="inv-layout">
+        <div class="inv" id="inv" role="group" aria-label="Server features">
+          <button class="item w2 h2" type="button" data-i="0" aria-label="Kits"><svg viewBox="0 0 32 32"><path d="M3 10 16 4l13 6v14l-13 6L3 24zM16 4v26M3 10l13 6 13-6" fill-rule="evenodd" opacity=".9"/><path d="M3 10l13 6v14L3 24z" opacity=".55"/><path d="M29 10 16 16v14l13-6z" opacity=".78"/><path d="M16 4 3 10l13 6 13-6z"/></svg><span class="q">100%</span></button>
+          <button class="item w2 h2" type="button" data-i="1" aria-label="Vault"><svg viewBox="0 0 32 32"><path d="M4 5h24v22H4z" opacity=".85"/><path d="M8 9h16v14H8z" fill="#11171a"/><circle cx="16" cy="16" r="4.2"/><path d="M15 15h2v2h-2z" fill="#11171a"/><path d="M6 27h4v2H6zM22 27h4v2h-4z"/></svg><span class="q">100%</span></button>
+          <button class="item w2" type="button" data-i="2" aria-label="Home"><svg viewBox="0 0 32 32"><path d="M2 20c0-6 6-9 14-9s14 3 14 9v4H2z" opacity=".85"/><path d="M2 24h28v2H2z"/><path d="M8 20c0-3 3-5 8-5s8 2 8 5z" fill="#11171a" opacity=".55"/></svg><span class="q">100%</span></button>
+          <button class="item w2" type="button" data-i="3" aria-label="Teleport"><svg viewBox="0 0 32 32"><path d="M3 11h16V6l10 9-10 9v-5H3z"/><path d="M3 22h8v3H3z" opacity=".55"/></svg><span class="q">100%</span></button>
+          <button class="item" type="button" data-i="4" aria-label="Day vote"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="6"/><path d="M15 2h2v6h-2zM15 24h2v6h-2zM2 15h6v2H2zM24 15h6v2h-6zM6 6l2-1 3 4-2 2zM21 23l2-2 4 3-2 3zM26 6l1 2-4 3-2-2zM11 23l-2-2-4 3 2 3z" opacity=".85"/></svg><span class="q">100%</span></button>
+          <button class="item" type="button" data-i="5" aria-label="Leaderboard"><svg viewBox="0 0 32 32"><path d="M10 14h12v4l-2 4h-8l-2-4z"/><path d="M6 8h20v2l-3 4H9L6 10z" opacity=".85"/><path d="M14 22h4v4h5v3H9v-3h5z"/></svg><span class="q">100%</span></button>
+          <button class="item" type="button" data-i="6" aria-label="Combat tag"><svg viewBox="0 0 32 32"><path d="M16 3 4 8v8c0 7 5 11 12 14 7-3 12-7 12-14V8z" opacity=".85"/><path d="M15 9h2v9h-2zM15 20h2v3h-2z" fill="#11171a"/></svg><span class="q">100%</span></button>
+          <button class="item" type="button" data-i="7" aria-label="Store"><svg viewBox="0 0 32 32"><path d="M6 11h20l-2 17H8z" opacity=".85"/><path d="M11 11c0-5 2-8 5-8s5 3 5 8h-2c0-4-1.2-6-3-6s-3 2-3 6z"/></svg><span class="q">100%</span></button>
+        </div>
+
+        <div class="detail" id="detail" aria-live="polite">
+          <h3 id="dTitle"></h3>
+          <p id="dText"></p>
+          <code class="cmd" id="dCmd"></code>
+          <p class="hint">Players can open the full menu any time with <code>/info</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="join">
+    <div class="wrap">
+      <h2>Start playing in three steps</h2>
+      <ol class="steps">
+        <li><b>Join the Discord</b><span>That's where updates, support and events are posted.</span></li>
+        <li><b>Find the server</b><span>Search "LOGIC" in the Unturned server browser, or connect with the IP.</span></li>
+        <li><b>Type /kit</b><span>Claim your free kit from the Kits tab and head out.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="block" id="vip">
+    <div class="wrap">
+      <h2>Support the server with VIP</h2>
+      <p class="sub">VIP keeps LOGIC running and adds extras for you.</p>
+      <div class="vip">
+        <div class="left">
+          <h3>LOGIC VIP</h3>
+          <p>A monthly rank with its own kit and perks. Your rank is applied after your purchase.</p>
+          <a class="btn primary" id="storeBtn" href="#">Get VIP</a>
+        </div>
+        <!-- EDIT: replace these with your real VIP perks -->
+        <ul>
+          <li>Exclusive VIP kit in the Kits tab</li>
+          <li>Extra perks (edit this list)</li>
+          <li>VIP color in chat (edit this list)</li>
+          <li>Priority support on Discord</li>
+        </ul>
+      </div>
+      <p class="fine">VIP includes gameplay advantages. LOGIC does not sell Unturned Gold, skins or any other official Unturned premium content.</p>
+    </div>
+  </section>
+
+  <section class="block" id="rules">
+    <div class="wrap">
+      <h2>Server rules</h2>
+      <!-- EDIT: replace with your real rules -->
+      <ul class="rules">
+        <li><b>No cheating</b><span>No hacks, macros or exploits. Bans are permanent.</span></li>
+        <li><b>No combat logging</b><span>Leaving during a fight drops your loot.</span></li>
+        <li><b>Respect other players</b><span>Trash talk is fine. Harassment is not.</span></li>
+        <li><b>No glitching into bases</b><span>Report bugs on Discord instead of abusing them.</span></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>LOGIC is a community server. It is not affiliated with or endorsed by Smartly Dressed Games.</span>
+    <span><a id="footerDiscord" href="#">Discord</a></span>
+  </div>
+</footer>
+
+<script>
+  /* ====== EDIT THESE ====== */
+  const CONFIG = {
+    discordUrl: "https://discord.gg/GyJfUuTtx",
+    storeUrl: "",                    // your store link; leave empty until the store is ready
+    serverIp: "srv1002.godlike.club:26199",   // shown when players press "Copy server IP"
+    battlemetricsId: "https://www.battlemetrics.com/servers/unturned/42342967"              // optional: your server's BattleMetrics ID to show players online
+  };
+  /* ======================== */
+
+  // ----- Links -----
+  const discordBtn = document.getElementById("discordBtn");
+  discordBtn.href = CONFIG.discordUrl;
+  discordBtn.target = "_blank"; discordBtn.rel = "noopener";
+  const footerDiscord = document.getElementById("footerDiscord");
+  footerDiscord.href = CONFIG.discordUrl;
+
+  const storeBtn = document.getElementById("storeBtn");
+  if (CONFIG.storeUrl) {
+    storeBtn.href = CONFIG.storeUrl; storeBtn.target = "_blank"; storeBtn.rel = "noopener";
+  } else {
+    storeBtn.textContent = "Store opens soon";
+    storeBtn.setAttribute("aria-disabled", "true");
+    storeBtn.addEventListener("click", e => e.preventDefault());
+  }
+
+  // ----- Copy IP -----
+  const ipBtn = document.getElementById("ipBtn");
+  ipBtn.addEventListener("click", async () => {
+    const old = ipBtn.textContent;
+    try { await navigator.clipboard.writeText(CONFIG.serverIp); ipBtn.textContent = "Copied: " + CONFIG.serverIp; }
+    catch (e) { ipBtn.textContent = CONFIG.serverIp; }
+    setTimeout(() => ipBtn.textContent = old, 2600);
+  });
+
+  // ----- Logo fallback if the image can't load -----
+  const logo = document.getElementById("logo");
+  logo.addEventListener("error", () => {
+    const m = document.createElement("span"); m.className = "mark"; logo.replaceWith(m);
+  });
+
+  // ----- Live status (only when a BattleMetrics ID is set) -----
+  const statusEl = document.getElementById("status");
+  if (CONFIG.battlemetricsId) {
+    fetch("https://api.battlemetrics.com/servers/" + encodeURIComponent(CONFIG.battlemetricsId))
+      .then(r => r.json())
+      .then(j => {
+        const a = j.data.attributes, on = a.status === "online";
+        statusEl.innerHTML = '<span class="dot' + (on ? "" : " off") + '"></span>' +
+          (on ? a.players + " of " + a.maxPlayers + " players online" : "Server is offline");
+      })
+      .catch(() => {});
+  }
+
+  // ----- Inventory: inspect an item -----
+  const ITEMS = [
+    { t: "Kits", d: "Claim a free PvP kit every 30 minutes. Supporters get VIP kits too. Press Redeem on a kit card and it goes straight into your inventory, clothes already equipped.", c: "/kit" },
+    { t: "Personal vault", d: "A 6x4 storage that follows you around the map. Put your best gear in it and open it from anywhere.", c: "/vault" },
+    { t: "Home", d: "Claim a sleeping bag and teleport back to it whenever you need to get out of trouble.", c: "/home" },
+    { t: "Teleport to a friend", d: "Send a teleport request to another player. If they accept, you're on your way.", c: "/tpa <player>" },
+    { t: "Day vote", d: "Too dark to see? Start a vote. When enough players vote yes, it turns day for everyone.", c: "/voteday" },
+    { t: "Leaderboard", d: "See who has the most kills on the server and where you rank.", c: "/top" },
+    { t: "Combat tag", d: "Take damage and you're in combat for 30 seconds. Log out during a fight and your loot drops where you stood.", c: "No command needed" },
+    { t: "Store", d: "Support the server and unlock VIP kits and perks.", c: "/store" }
+  ];
+  const buttons = [...document.querySelectorAll(".item")];
+  function pick(i) {
+    buttons.forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.i === i)));
+    document.getElementById("dTitle").textContent = ITEMS[i].t;
+    document.getElementById("dText").textContent = ITEMS[i].d;
+    document.getElementById("dCmd").textContent = ITEMS[i].c;
+  }
+  buttons.forEach(b => {
+    b.addEventListener("click", () => pick(+b.dataset.i));
+    b.addEventListener("mouseenter", () => pick(+b.dataset.i));
+    b.addEventListener("focus", () => pick(+b.dataset.i));
+  });
+  pick(0);
+
+  // ----- Low-poly dusk landscape (generic pines and hills, drawn with code) -----
+  (function () {
+    const svg = document.getElementById("scene"), NS = "http://www.w3.org/2000/svg";
+    const W = 1600, H = 640;
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const add = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); svg.appendChild(e); return e; };
+
+    // low sun glow near the horizon
+    const defs = add("defs", {});
+    defs.innerHTML = '<radialGradient id="glow" cx="72%" cy="62%" r="38%"><stop offset="0" stop-color="#ffc9a0" stop-opacity=".75"/><stop offset="1" stop-color="#ffc9a0" stop-opacity="0"/></radialGradient>';
+    add("rect", { width: W, height: H, fill: "url(#glow)" });
+
+    // a hill made of straight (low-poly) segments
+    function hill(base, amp, step, fill) {
+      let p = "M0," + H + " L0," + base;
+      for (let x = 0; x <= W + step; x += step) p += " L" + x + "," + (base - rnd() * amp);
+      add("path", { d: p + " L" + W + "," + H + " Z", fill });
+    }
+    // a pine: three stacked triangles and a trunk
+    function pine(x, y, s, fill, trunk) {
+      add("rect", { x: x - 3 * s, y: y - 8 * s, width: 6 * s, height: 10 * s, fill: trunk });
+      [[34, 30], [24, 50], [14, 68]].forEach(([w, top]) => {
+        add("polygon", { points: (x - w * s) + "," + (y - (top - 22) * s) + " " + x + "," + (y - top * s - 22 * s) + " " + (x + w * s) + "," + (y - (top - 22) * s), fill });
+      });
+    }
+    hill(430, 70, 90, "#4a3d5e");
+    hill(490, 50, 70, "#34394a");
+    for (let i = 0; i < 26; i++) pine(rnd() * W, 500 + rnd() * 20, 0.55 + rnd() * 0.25, "#2c3340", "#262a35");
+    hill(545, 36, 60, "#213027");
+    for (let i = 0; i < 22; i++) pine(rnd() * W, 560 + rnd() * 40, 0.9 + rnd() * 0.5, "#1a2a22", "#171d1a");
+    hill(610, 22, 50, "#141c18");
+  })();
+</script>
+</body>
+</html>
