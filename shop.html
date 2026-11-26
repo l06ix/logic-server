@@ -165,15 +165,20 @@
     <div class="buy">
       <p class="amount"><span id="price"></span> <small id="period"></small></p>
       <ol>
-        <li>Press the button and log in with Steam on the checkout page.</li>
-        <li>Pay.</li>
-        <li>Join the server. VIP is applied within a few minutes.</li>
+        <li>Enter your Steam ID below.</li>
+        <li>Pay with PayPal.</li>
+        <li>Send us your Steam ID and payment on Discord. We add VIP by hand.</li>
       </ol>
 
-      <p class="hint" id="steamHint">VIP is added to the Steam account you log in with. Purchases can't be moved to another account.</p>
+      <label for="steamId">Your Steam ID (17 digits)</label>
+      <input id="steamId" type="text" inputmode="numeric" autocomplete="off" placeholder="76561198000000000">
+      <p class="hint" id="steamHint">Not sure what yours is? Paste your Steam profile link on <a href="https://steamid.io" target="_blank" rel="noopener">steamid.io</a> and copy the number called steamID64.</p>
 
-      <button class="btn primary" id="checkout" type="button" disabled>Continue to checkout</button>
+      <button class="btn primary" id="checkout" type="button" disabled>Pay with PayPal</button>
       <p class="small" id="checkoutNote"></p>
+
+      <button class="btn" id="sendDiscord" type="button" disabled>Copy my message and open Discord</button>
+      <p class="small" id="sendNote">Paste the message in the Discord channel and attach a screenshot of your PayPal payment.</p>
     </div>
   </section>
 </main>
@@ -189,10 +194,10 @@
   /* ====== EDIT THESE ====== */
   const CONFIG = {
     discordUrl: "https://discord.gg/GyJfUuTtx",
-    vipPrice: "$5.99",                    // shown to players (must match the Tebex package price)
+    vipPrice: "$5.99",                    // shown to players
     vipPeriod: "for 30 days",
     vipLead: "Support LOGIC and get extras that save you time.",
-    checkoutUrl: "https://logic-vip.kdumblis5.workers.dev/login"   // Steam login, then payment; empty = checkout not open yet
+    paypalUrl: ""                         // your PayPal.me link with the amount, e.g. https://paypal.me/YOURNAME/5.99USD ; empty = payment not open yet
   };
   /* ======================== */
 
@@ -216,14 +221,51 @@
     d.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   });
 
-  const open = !!CONFIG.checkoutUrl;
-  $("checkout").disabled = !open;
-  $("checkoutNote").textContent = open ? "You will be sent to our payment page." : "Checkout is not open yet. Join the Discord to hear when it is.";
+  // Accept a 17 digit Steam ID, or a steamcommunity.com/profiles/<id> link.
+  function readSteamId(text) {
+    const m = text.trim().match(/(7656119\d{10})/);
+    return m ? m[1] : null;
+  }
+
+  const defaultHint = $("steamHint").innerHTML;
+  function update() {
+    const raw = $("steamId").value.trim();
+    const id = readSteamId(raw);
+    const hint = $("steamHint");
+
+    if (!raw) {
+      hint.className = "hint";
+      hint.innerHTML = defaultHint;
+    } else if (id) {
+      hint.className = "hint ok";
+      hint.textContent = "Steam ID found: " + id;
+    } else {
+      hint.className = "hint err";
+      hint.textContent = "That doesn't look like a Steam ID. It is 17 digits and starts with 7656119.";
+    }
+
+    const open = !!CONFIG.paypalUrl;
+    $("checkout").disabled = !(id && open);
+    $("sendDiscord").disabled = !id;
+    $("checkoutNote").textContent = open ? "Opens PayPal in a new tab. Pay the amount shown above." : "Payment is not open yet. Join the Discord to hear when it is.";
+  }
+  $("steamId").addEventListener("input", update);
 
   $("checkout").addEventListener("click", () => {
-    if (!CONFIG.checkoutUrl) return;
-    location.href = CONFIG.checkoutUrl;
+    if (!readSteamId($("steamId").value) || !CONFIG.paypalUrl) return;
+    window.open(CONFIG.paypalUrl, "_blank", "noopener");
   });
+
+  $("sendDiscord").addEventListener("click", async () => {
+    const id = readSteamId($("steamId").value);
+    if (!id) return;
+    const message = "VIP purchase. Steam ID: " + id;
+    try { await navigator.clipboard.writeText(message); $("sendNote").textContent = "Copied: " + message + ". Paste it in Discord and attach your PayPal screenshot."; }
+    catch (e) { $("sendNote").textContent = "Copy this and paste it in Discord: " + message; }
+    window.open(CONFIG.discordUrl, "_blank", "noopener");
+  });
+
+  update();
 </script>
 </body>
 </html>
