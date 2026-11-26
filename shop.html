@@ -165,16 +165,12 @@
     <div class="buy">
       <p class="amount"><span id="price"></span> <small id="period"></small></p>
       <ol>
-        <li>Enter your Steam ID below.</li>
-        <li>Pay on the checkout page.</li>
+        <li>Press the button and log in with Steam on the checkout page.</li>
+        <li>Pay.</li>
         <li>Join the server. VIP is applied within a few minutes.</li>
       </ol>
 
-      <label for="steamId">Your Steam ID (17 digits)</label>
-      <input id="steamId" type="text" inputmode="numeric" autocomplete="off" placeholder="76561198000000000">
-      <p class="hint" id="steamHint">Not sure what yours is? Paste your Steam profile link on <a href="https://steamid.io" target="_blank" rel="noopener">steamid.io</a> and copy the number called steamID64.</p>
-
-      <label class="check"><input id="terms" type="checkbox"> I entered the right Steam ID. VIP is added to that account, and purchases can't be moved to another account.</label>
+      <p class="hint" id="steamHint">VIP is added to the Steam account you log in with. Purchases can't be moved to another account.</p>
 
       <button class="btn primary" id="checkout" type="button" disabled>Continue to checkout</button>
       <p class="small" id="checkoutNote"></p>
@@ -193,11 +189,10 @@
   /* ====== EDIT THESE ====== */
   const CONFIG = {
     discordUrl: "https://discord.gg/GyJfUuTtx",
-    vipPrice: "$5.99",                       // shown to players
+    vipPrice: "$5.99",                    // shown to players (must match the Tebex package price)
     vipPeriod: "for 30 days",
     vipLead: "Support LOGIC and get extras that save you time.",
-    checkoutUrl: "",                      // the checkout link from your store service; empty = checkout not open yet
-    steamIdParam: "steamid"               // name used to pass the Steam ID to the checkout link (?steamid=...)
+    checkoutUrl: "https://shop-lzjyhk.tebex.store"   // your Tebex store; empty = checkout not open yet
   };
   /* ======================== */
 
@@ -219,48 +214,16 @@
     d.hidden = false;
     $("openVip").setAttribute("aria-expanded", "true");
     d.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-    $("steamId").focus({ preventScroll: true });
   });
 
-  // Accept a 17 digit Steam ID, or a steamcommunity.com/profiles/<id> link.
-  function readSteamId(text) {
-    const t = text.trim();
-    const m = t.match(/(7656119\d{10})/);
-    return m ? m[1] : null;
-  }
-
-  function update() {
-    const raw = $("steamId").value.trim();
-    const id = readSteamId(raw);
-    const hint = $("steamHint");
-
-    if (!raw) {
-      hint.className = "hint";
-      hint.innerHTML = 'Not sure what yours is? Paste your Steam profile link on <a href="https://steamid.io" target="_blank" rel="noopener">steamid.io</a> and copy the number called steamID64.';
-    } else if (id) {
-      hint.className = "hint ok";
-      hint.textContent = "Steam ID found: " + id;
-    } else {
-      hint.className = "hint err";
-      hint.textContent = "That doesn't look like a Steam ID. It is 17 digits and starts with 7656119.";
-    }
-
-    const open = !!CONFIG.checkoutUrl;
-    $("checkout").disabled = !(id && $("terms").checked && open);
-    $("checkoutNote").textContent = open ? "You will be sent to our payment page." : "Checkout is not open yet. Join the Discord to hear when it is.";
-  }
-  $("steamId").addEventListener("input", update);
-  $("terms").addEventListener("change", update);
+  const open = !!CONFIG.checkoutUrl;
+  $("checkout").disabled = !open;
+  $("checkoutNote").textContent = open ? "You will be sent to our payment page." : "Checkout is not open yet. Join the Discord to hear when it is.";
 
   $("checkout").addEventListener("click", () => {
-    const id = readSteamId($("steamId").value);
-    if (!id || !$("terms").checked || !CONFIG.checkoutUrl) return;
-    const url = new URL(CONFIG.checkoutUrl, location.href);
-    url.searchParams.set(CONFIG.steamIdParam, id);
-    location.href = url.toString();
+    if (!CONFIG.checkoutUrl) return;
+    location.href = CONFIG.checkoutUrl;
   });
-
-  update();
 </script>
 </body>
 </html>
